@@ -1,19 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2D Tetris Game</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D Tetris with Power-ups</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Tetris</h1>
-  <div class="game-container">
-    <canvas id="tetris" width="300" height="600"></canvas>
-    <div class="score-board">
-      <h2>Score: <span id="score">0</span></h2>
+    <div class="game-container">
+        <div class="game-board">
+            <canvas id="tetris" width="300" height="600"></canvas>
+        </div>
+        <div class="side-panel">
+            <div class="score-box">
+                <h2>Score</h2>
+                <div id="score">0</div>
+            </div>
+            <div class="level-box">
+                <h2>Level</h2>
+                <div id="level">1</div>
+            </div>
+            <div class="next-piece">
+                <h2>Next</h2>
+                <canvas id="next" width="120" height="120"></canvas>
+            </div>
+            <div class="power-ups">
+                <h2>Power-ups</h2>
+                <div id="power-ups">None</div>
+            </div>
+        </div>
     </div>
-  </div>
-  <script src="script.js"></script>
+    <div class="controls">
+        <p>Controls: ← → to move, ↑ to rotate, ↓ to soft drop, Space to hard drop</p>
+    </div>
+    <script src="tetris.js"></script>
 </body>
 </html>
