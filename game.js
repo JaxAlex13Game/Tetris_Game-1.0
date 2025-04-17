@@ -1,7 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Get canvas elements
     const canvas = document.getElementById('tetris');
-    const ctx = canvas.getContext('2d');
     const nextPieceCanvas = document.getElementById('next-piece');
+    
+    // Check if canvases exist
+    if (!canvas || !nextPieceCanvas) {
+        console.error("Canvas elements not found!");
+        return;
+    }
+
+    const ctx = canvas.getContext('2d');
     const nextPieceCtx = nextPieceCanvas.getContext('2d');
     const scoreElement = document.getElementById('score');
     const levelElement = document.getElementById('level');
@@ -23,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastTime = 0;
     let gameId = null;
 
-    // Board
-    const board = createMatrix(12, 20);
+    // Board (12 wide x 20 tall)
+    const board = Array.from({length: 20}, () => Array(12).fill(0));
 
     // Player
     const player = {
@@ -34,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
         score: 0
     };
 
-    // Tetrimino pieces
+    // Tetrimino pieces with colors
     const pieces = [
         // I
         [
@@ -83,13 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Colors for pieces
     const colors = [
         null,
-        '#FF0D72', // I
-        '#0DC2FF', // J
-        '#0DFF72', // L
-        '#F538FF', // O
-        '#FF8E0D', // S
-        '#FFE138', // T
-        '#3877FF'  // Z
+        '#FF0D72', // I (pink)
+        '#0DC2FF', // J (blue)
+        '#0DFF72', // L (green)
+        '#F538FF', // O (purple)
+        '#FF8E0D', // S (orange)
+        '#FFE138', // T (yellow)
+        '#3877FF'  // Z (dark blue)
     ];
 
     // Initialize game
@@ -97,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetGame();
         startButton.addEventListener('click', startGame);
         document.addEventListener('keydown', handleKeyPress);
+        console.log("Game initialized");
     }
 
     function resetGame() {
@@ -127,7 +136,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function update(time = 0) {
-        if (gameOver) return;
+        if (gameOver) {
+            if (confirm(`Game Over! Score: ${score}\nPlay again?`)) {
+                startGame();
+            }
+            return;
+        }
         
         const deltaTime = time - lastTime;
         lastTime = time;
@@ -151,29 +165,46 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         // Draw board
-        drawMatrix(board, {x: 0, y: 0}, ctx);
+        for (let y = 0; y < board.length; y++) {
+            for (let x = 0; x < board[y].length; x++) {
+                if (board[y][x]) {
+                    ctx.fillStyle = colors[board[y][x]];
+                    ctx.fillRect(x, y, 1, 1);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 0.05;
+                    ctx.strokeRect(x, y, 1, 1);
+                }
+            }
+        }
         
         // Draw current piece
-        drawMatrix(player.matrix, player.pos, ctx);
+        if (player.matrix) {
+            for (let y = 0; y < player.matrix.length; y++) {
+                for (let x = 0; x < player.matrix[y].length; x++) {
+                    if (player.matrix[y][x]) {
+                        ctx.fillStyle = colors[player.matrix[y][x]];
+                        ctx.fillRect(x + player.pos.x, y + player.pos.y, 1, 1);
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 0.05;
+                        ctx.strokeRect(x + player.pos.x, y + player.pos.y, 1, 1);
+                    }
+                }
+            }
+        }
         
         // Draw next piece
         nextPieceCtx.fillStyle = '#111';
         nextPieceCtx.fillRect(0, 0, nextPieceCanvas.width, nextPieceCanvas.height);
-        drawMatrix(player.next, {x: 0.5, y: 0.5}, nextPieceCtx);
-    }
-
-    function drawMatrix(matrix, offset, context) {
-        matrix.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0) {
-                    context.fillStyle = colors[value];
-                    context.fillRect(x + offset.x, y + offset.y, 1, 1);
-                    context.strokeStyle = '#000';
-                    context.lineWidth = 0.05;
-                    context.strokeRect(x + offset.x, y + offset.y, 1, 1);
+        if (player.next) {
+            for (let y = 0; y < player.next.length; y++) {
+                for (let x = 0; x < player.next[y].length; x++) {
+                    if (player.next[y][x]) {
+                        nextPieceCtx.fillStyle = colors[player.next[y][x]];
+                        nextPieceCtx.fillRect(x + 0.5, y + 0.5, 1, 1);
+                    }
                 }
-            });
-        });
+            }
+        }
     }
 
     function playerReset() {
@@ -182,8 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         player.matrix = player.next;
         player.next = randomPiece();
-        player.pos.y = 0;
-        player.pos.x = (board[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        player.pos.y = -2; // Start above the board
+        player.pos.x = Math.floor((board[0].length - player.matrix[0].length) / 2);
         
         // Game over if collision immediately
         if (collide()) {
@@ -227,12 +258,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function rotate(matrix, dir) {
+        // Transpose matrix
         for (let y = 0; y < matrix.length; ++y) {
             for (let x = 0; x < y; ++x) {
                 [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
             }
         }
         
+        // Reverse rows for clockwise rotation
         if (dir > 0) {
             matrix.forEach(row => row.reverse());
         } else {
@@ -245,8 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let y = 0; y < m.length; ++y) {
             for (let x = 0; x < m[y].length; ++x) {
                 if (m[y][x] !== 0 &&
-                    (board[y + o.y] &&
-                    board[y + o.y][x + o.x]) !== 0) {
+                    (board[y + o.y] === undefined ||
+                    board[y + o.y][x + o.x] === undefined ||
+                    board[y + o.y][x + o.x] !== 0)) {
                     return true;
                 }
             }
@@ -302,17 +336,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function randomPiece() {
         const piece = pieces[Math.floor(Math.random() * pieces.length)];
-        // Assign color based on piece type
         const pieceIndex = pieces.indexOf(piece) + 1;
         return piece.map(row => row.map(value => value ? pieceIndex : 0));
-    }
-
-    function createMatrix(w, h) {
-        const matrix = [];
-        while (h--) {
-            matrix.push(new Array(w).fill(0));
-        }
-        return matrix;
     }
 
     function handleKeyPress(e) {
@@ -353,8 +378,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function togglePause() {
         paused = !paused;
-        if (!paused && !gameOver) {
-            gameId = requestAnimationFrame(update);
+        if (paused) {
+            startButton.textContent = 'Resume Game';
+        } else {
+            startButton.textContent = 'Restart Game';
+            if (!gameOver) {
+                gameId = requestAnimationFrame(update);
+            }
         }
     }
 
